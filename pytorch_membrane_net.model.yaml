@@ -14,7 +14,8 @@ language: python
 framework: pytorch
 
 source: pytorch_tools.piled_unets.MembraneNet
-optional_kwargs: {}
+optional_kwargs:
+  - predict: False  # Set to True to get all three output channels (Usually not necessary)
 
 test_input: test_input.npz  # TODO What is this?
 test_output: test_output.npz  # TODO What is this?
