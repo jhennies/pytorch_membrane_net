@@ -206,6 +206,37 @@ class PiledUnet(nn.Module):
         return outputs
 
 
+class MembraneNet(PiledUnet):
+    """
+    Just a piled unet with sensible parameters
+    """
+
+    def __init__(self):
+
+        super(MembraneNet, self).__init__(
+            n_nets=3,
+            in_channels=1,
+            out_channels=[1, 1, 1],
+            filter_sizes_down=(
+                ((16, 32), (32, 64), (64, 128)),
+                ((16, 32), (32, 64), (64, 128)),
+                ((16, 32), (32, 64), (64, 128))
+            ),
+            filter_sizes_bottleneck=(
+                (128, 256),
+                (128, 256),
+                (128, 256)
+            ),
+            filter_sizes_up=(
+                ((256, 128, 128), (128, 64, 64), (64, 32, 32)),
+                ((256, 128, 128), (128, 64, 64), (64, 32, 32)),
+                ((256, 128, 128), (128, 64, 64), (64, 32, 32))
+            ),
+            batch_norm=True,
+            output_activation='sigmoid'
+        )
+
+
 if __name__ == '__main__':
 
     piled_unet = PiledUnet(

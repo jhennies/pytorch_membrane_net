@@ -1,0 +1,55 @@
+name: Membrane Net
+description: 3D U-Net based network to predict membranes in 3D SEM volumes.
+cite:
+  - text:
+    doi:
+authors:
+  - Julian Hennies
+documentation: README.md
+tags: [unet3d, pytorch, 3D SEM, FIB-SEM, SBEM, membrane, probabilities, EM]
+# license:
+
+format_version:  # TODO ???
+language: python
+framework: pytorch
+
+source: pytorch_tools.piled_unets.MembraneNet
+optional_kwargs: {}
+
+test_input: test_input.npz  # TODO What is this?
+test_output: test_output.npz  # TODO What is this?
+covers: []  # TODO These are the cover images, I guess. Where do I put these images?
+
+inputs:
+  - name: raw
+    axes: bczyx
+    data_type: float32
+    data_range: [-inf, inf]
+    shape: [1, 1, 80, 160, 160]
+
+outputs:
+  - name: membranes
+    axes: bczyx
+    data_type: float32
+    data_range: [0, 1]
+    halo: [0, 0, 16, 16, 16]
+    shape:
+        reference_input: raw
+        scale: [1, 1, 1, 1, 1]
+        offset: [0, 0, 0, 0, 0]
+
+# TODO: What are the remaining pre- and post-processing steps?
+prediction:
+  preprocess:
+    - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/EnsureTorch.transformation.yaml
+    - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/Cast.transformation.yaml
+      kwargs: {dtype: float32}
+ #   - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/NormalizeZeroMeanUnitVariance.transformation.yaml
+ #     kwargs: {apply_to: [0]}
+  weights:
+    source: best_model.pth  # TODO put into package
+    hash: {md5: c7027b44cbaa334105248397c43de6fe}  # TODO What is this hash
+  postprocess:
+    - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/EnsureNumpy.transformation.yaml
+
+  dependencies: conda:environment.yaml
