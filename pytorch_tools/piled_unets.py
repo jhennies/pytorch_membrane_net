@@ -211,7 +211,7 @@ class MembraneNet(PiledUnet):
     Just a piled unet with sensible parameters
     """
 
-    def __init__(self):
+    def __init__(self, predict=False):
 
         super(MembraneNet, self).__init__(
             n_nets=3,
@@ -233,7 +233,8 @@ class MembraneNet(PiledUnet):
                 ((256, 128, 128), (128, 64, 64), (64, 32, 32))
             ),
             batch_norm=True,
-            output_activation='sigmoid'
+            output_activation='sigmoid',
+            predict=predict
         )
 
 
