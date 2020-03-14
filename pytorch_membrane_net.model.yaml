@@ -9,7 +9,7 @@ documentation: README.md
 tags: [unet3d, pytorch, 3D SEM, FIB-SEM, SBEM, membrane, probabilities, EM]
 # license:
 
-format_version:  # TODO ???
+format_version:  # TODO Is this the version of my model release?
 language: python
 framework: pytorch
 
@@ -38,7 +38,7 @@ outputs:
         scale: [1, 1, 1, 1, 1]
         offset: [0, 0, 0, 0, 0]
 
-# TODO: What are the remaining pre- and post-processing steps?
+# TODO: Which pre- and post-processing steps do I need?
 prediction:
   preprocess:
     - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/EnsureTorch.transformation.yaml
@@ -47,8 +47,8 @@ prediction:
  #   - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/NormalizeZeroMeanUnitVariance.transformation.yaml
  #     kwargs: {apply_to: [0]}
   weights:
-    source: best_model.pth  # TODO put into package
-    hash: {md5: c7027b44cbaa334105248397c43de6fe}  # TODO What is this hash
+    source: best_model.pth
+    hash: {md5: c7027b44cbaa334105248397c43de6fe}  # TODO What is this hash?
   postprocess:
     - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/EnsureNumpy.transformation.yaml
 
