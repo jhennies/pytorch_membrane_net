@@ -1,8 +1,8 @@
 name: Membrane Net
 description: 3D U-Net based network to predict membranes in 3D SEM volumes.
 cite:
-  - text:
-    doi:
+  - text: N/A
+    doi: N/A
 authors:
   - Julian Hennies
 documentation: README.md
@@ -10,7 +10,7 @@ tags: [unet3d, pytorch, 3D SEM, FIB-SEM, SBEM, membrane, probabilities, EM]
 # You should add a license for the repository so that your code (and consequently the model)
 # can be used by others. I would suggest to use either MIT (to allow all kinds of use), Apache (to restrict commercial use)
 # or GPL (to require applications that use it to be open source)
-# license:
+license: MIT
 
 format_version: 0.1.0  # this is the version of the model zoo yaml format, which is currently at 0.1.0
 language: python
@@ -18,18 +18,18 @@ framework: pytorch
 
 source: pytorch_tools.piled_unets.MembraneNet
 optional_kwargs:
-  - predict: False  # Set to True to get all three output channels (Usually not necessary)
+  predict: True  # Set to False to get all three output channels (Usually not necessary)
 
-test_input: test_input.npz  # this is an input tensor for the network that should be stored in this repository (in .npz format)
-test_output: test_output.npz  # this is the corresponding output tensor
-covers: []  # Cover images for the model zoo website, also to be stored in this repository
+#test_input: test_input.npz  # this is an input tensor for the network that should be stored in this repository (in .npz format)
+#test_output: test_output.npz  # this is the corresponding output tensor
+#covers: []  # Cover images for the model zoo website, also to be stored in this repository
 
 inputs:
   - name: raw
     axes: bczyx
     data_type: float32
-    data_range: [-inf, inf]
-    shape: [1, 1, 80, 160, 160]
+    data_range: [0, 1]
+    shape: [1, 1, 64, 64, 64]
 
 outputs:
   - name: membranes
@@ -49,12 +49,12 @@ prediction:
     - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/EnsureTorch.transformation.yaml
     - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/Cast.transformation.yaml
       kwargs: {dtype: float32}
- #   - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/NormalizeZeroMeanUnitVariance.transformation.yaml
- #     kwargs: {apply_to: [0]}
+#    - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/NormalizeZeroMeanUnitVariance.transformation.yaml
+#      kwargs: {apply_to: [0]}
   weights:
     source: best_model.pth
-    hash: {md5: c7027b44cbaa334105248397c43de6fe}  # this is the hash for the file containing the weights. we recommend to store weights on zenodo, which will automatically compute hashes
+    hash: {md5: a685c4a3bf58731cc5f488c9423043c3}
   postprocess:
     - spec: https://github.com/bioimage-io/pytorch-bioimage-io/blob/a8863571fde5caeaf79903f71f7913fd2d9a9d01/specs/transformations/EnsureNumpy.transformation.yaml
 
-  dependencies: conda:environment.yaml
+#  dependencies: conda:environment.yaml
