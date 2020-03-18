@@ -3,7 +3,7 @@ import os
 import numpy as np
 import sys
 import torch as t
-from pytorch.pytorch_tools.data_generation import parallel_test_data_generator
+from pytorch_tools.data_generation import parallel_test_data_generator
 
 
 def predict_model_from_h5_parallel_generator(

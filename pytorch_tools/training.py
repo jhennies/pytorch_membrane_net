@@ -5,7 +5,7 @@ import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import os
 
-from pytorch.pytorch_tools.run_models import predict_model_from_h5_parallel_generator
+from pytorch_tools.run_models import predict_model_from_h5_parallel_generator
 
 from matplotlib import pyplot as plt
 

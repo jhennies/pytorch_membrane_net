@@ -4,7 +4,7 @@ import numpy as np
 # from .modules import nn
 import torch.nn as nn
 from torch import cat
-from pytorch.pytorch_tools.modules import Unet
+from pytorch_tools.modules import Unet
 from torchsummary import summary
 
 
