@@ -4,7 +4,7 @@ from h5py import File
 from pytorch_tools.piled_unets import MembraneNet
 import torch as t
 
-from torchsummary import summary
+# from torchsummary import summary
 import numpy as np
 from pytorch_tools.run_models import predict_model_from_h5_parallel_generator
 from glob import glob
@@ -33,7 +33,7 @@ im_list = sorted(glob(os.path.join(
 
 model = MembraneNet(predict=True)
 model.cuda()
-summary(model, (1, 64, 64, 64))
+# summary(model, (1, 64, 64, 64))
 
 model.load_state_dict(t.load(os.path.join(net_folder, 'best_model.pth')))
 

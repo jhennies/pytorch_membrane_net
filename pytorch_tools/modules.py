@@ -2,7 +2,7 @@
 import torch.nn as nn
 from torch import cat
 from torch import optim
-from torchsummary import summary
+# from torchsummary import summary
 
 ConvND = {2: nn.Conv2d, 3: nn.Conv3d}
 ConvNDTranspose = {2: nn.ConvTranspose2d, 3: nn.ConvTranspose3d}
