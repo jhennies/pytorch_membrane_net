@@ -67,6 +67,6 @@ with t.no_grad():
             write_at_area=False,
             offset=None,
             full_dataset_shape=None,
-            write_in_and_out=True
+            write_in_and_out=False
         )
 
