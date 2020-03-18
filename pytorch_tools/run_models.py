@@ -1,4 +1,3 @@
-
 import h5py
 import os
 import numpy as np
@@ -21,9 +20,9 @@ def predict_model_from_h5_parallel_generator(
         thresh=0,
         write_at_area=False,
         offset=None,
-        full_dataset_shape=None
+        full_dataset_shape=None,
+        write_in_and_out=False  # For debugging
 ):
-    
     model.eval()
 
     print('offset = {}'.format(offset))
@@ -43,10 +42,10 @@ def predict_model_from_h5_parallel_generator(
         start_crop = result_shape_half - spacing_half
         stop_crop = result_shape_half + spacing_half
         s_pre_crop = np.s_[
-            start_crop[0]: stop_crop[0],
-            start_crop[1]: stop_crop[1],
-            start_crop[2]: stop_crop[2]
-        ]
+                     start_crop[0]: stop_crop[0],
+                     start_crop[1]: stop_crop[1],
+                     start_crop[2]: stop_crop[2]
+                     ]
         result_cropped = result[s_pre_crop]
 
         # All the shapes and positions
@@ -93,19 +92,32 @@ def predict_model_from_h5_parallel_generator(
     # Generate results file
     if not write_at_area:
         with h5py.File(results_filepath, 'w') as f:
-            f.create_dataset('data', shape=tuple(area_size) + (num_result_channels,), dtype='uint8', compression='gzip', chunks=(32, 32, 32, 1))
+            f.create_dataset('data', shape=tuple(area_size) + (num_result_channels,), dtype='uint8', compression='gzip',
+                             chunks=(32, 32, 32, 1))
     else:
         if not os.path.exists(results_filepath):
             with h5py.File(results_filepath, 'w') as f:
-                f.create_dataset('data', shape=tuple(full_dataset_shape) + (num_result_channels,), dtype='uint8', compression='gzip')
+                f.create_dataset('data', shape=tuple(full_dataset_shape) + (num_result_channels,), dtype='uint8',
+                                 compression='gzip')
+
+    # Generate debug input and results files
+    if write_in_and_out:
+        f_ins = h5py.File(os.path.splitext(results_filepath)[0] + '_ins.h5', 'w')
+        f_outs = h5py.File(os.path.splitext(results_filepath)[0] + '_outs.h5', 'w')
+        folder_ins = os.path.splitext(results_filepath)[0] + '_ins'
+        folder_outs = os.path.splitext(results_filepath)[0] + '_outs'
+        if not os.path.exists(folder_ins):
+            os.mkdir(folder_ins)
+        if not os.path.exists(folder_outs):
+            os.mkdir(folder_outs)
 
     for idx, element in enumerate(parallel_test_data_generator(
-        raw_channels=raw_channels,
-        spacing=spacing,
-        area_size=area_size,
-        target_shape=target_shape,
-        smooth_output_sigma=smooth_output_sigma,
-        n_workers=n_workers
+            raw_channels=raw_channels,
+            spacing=spacing,
+            area_size=area_size,
+            target_shape=target_shape,
+            smooth_output_sigma=smooth_output_sigma,
+            n_workers=n_workers
     )):
         im = element[0]
         xyz = element[1][0] + np.array(offset)
@@ -119,9 +131,23 @@ def predict_model_from_h5_parallel_generator(
 
         if compute_empty_volumes or (im < thresh).sum():
 
-            imx = t.tensor(np.moveaxis(im, 4, 1), dtype=t.float32).cuda()
+            im = np.moveaxis(im, 4, 1)
+
+            if write_in_and_out:
+                f_ins.create_dataset('{}_{}_{}'.format(z, y, x), data=im)
+                np.savez(os.path.join(folder_ins, '{}_{}_{}.npz'.format(z, y, x)), im)
+
+            imx = t.tensor(im, dtype=t.float32).cuda()
+
             result = model(imx)
-            result = np.moveaxis(result.cpu().numpy(), 1, 4)
+            result = result.cpu().numpy()
+
+            if write_in_and_out:
+                f_outs.create_dataset('{}_{}_{}'.format(z, y, x), data=result)
+                np.savez(os.path.join(folder_outs, '{}_{}_{}.npz'.format(z, y, x)), result)
+
+            result = np.moveaxis(result, 1, 4)
+
             # overlap = np.array(result.shape[1:4]) - np.array(spacing)
             #
             with h5py.File(results_filepath, 'a') as f:
