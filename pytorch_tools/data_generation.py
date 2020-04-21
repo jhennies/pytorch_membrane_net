@@ -1,4 +1,3 @@
-
 import os
 from h5py import File
 import numpy as np
@@ -19,7 +18,6 @@ def _build_equally_spaced_volume_list(
         transform_ratio,
         set_volume=None
 ):
-
     # Components
     spacing = spacing
     half_area_size = (np.array(area_size) / 2).astype(int)
@@ -29,7 +27,7 @@ def _build_equally_spaced_volume_list(
          -half_area_size[0]: half_area_size[0]: spacing[0],
          -half_area_size[1]: half_area_size[1]: spacing[1],
          -half_area_size[2]: half_area_size[2]: spacing[2]
-    ].squeeze()
+         ].squeeze()
     mg[0] -= int((mg[0].max() + mg[0].min()) / 2)
     mg[1] -= int((mg[1].max() + mg[1].min()) / 2)
     mg[2] -= int((mg[2].max() + mg[2].min()) / 2)
@@ -50,7 +48,7 @@ def _build_equally_spaced_volume_list(
                 index_array.append(
                     [
                         position,
-                        set_volume,          # Always volume 0
+                        set_volume,  # Always volume 0
                         transform[idx]
                     ]
                 )
@@ -58,7 +56,7 @@ def _build_equally_spaced_volume_list(
                 index_array.append(
                     [
                         position,
-                        volume,          # Always volume 0
+                        volume,  # Always volume 0
                         transform[idx]
                     ]
                 )
@@ -74,7 +72,6 @@ def _build_equally_spaced_volume_list(
 
 
 def _find_bounds(position, crop_shape, full_shape):
-
     position = np.array(position)
     crop_shape = np.array(crop_shape)
     full_shape = np.array(full_shape)
@@ -94,16 +91,16 @@ def _find_bounds(position, crop_shape, full_shape):
     # Making slicings ...
     # ... where to take the data from in the full shape ...
     s_source = np.s_[
-        start_corrected[0]: stop_corrected[0],
-        start_corrected[1]: stop_corrected[1],
-        start_corrected[2]: stop_corrected[2]
-    ]
+               start_corrected[0]: stop_corrected[0],
+               start_corrected[1]: stop_corrected[1],
+               start_corrected[2]: stop_corrected[2]
+               ]
     # ... and where to put it into the crop
     s_target = np.s_[
-        start_oob[0]: crop_shape[0] - stop_oob[0],
-        start_oob[1]: crop_shape[1] - stop_oob[1],
-        start_oob[2]: crop_shape[2] - stop_oob[2]
-    ]
+               start_oob[0]: crop_shape[0] - stop_oob[0],
+               start_oob[1]: crop_shape[1] - stop_oob[1],
+               start_oob[2]: crop_shape[2] - stop_oob[2]
+               ]
 
     return s_source, s_target
 
@@ -114,13 +111,16 @@ def _load_data_with_padding(
         target_shape,
         auto_pad=False,
         return_pad_mask=False,
-        return_shape_only=False
+        return_shape_only=False,
+        auto_pad_z=False
 ):
     source_shape = np.array(channels[0].shape)
 
     shape = np.array(target_shape)
     if auto_pad:
         shape[1:] = np.ceil(np.array(target_shape[1:]) * np.sqrt(2) / 2).astype(int) * 2
+    if auto_pad_z:
+        shape[0] = np.ceil(np.array(target_shape[0]) * np.sqrt(2) / 2).astype(int) * 2
 
     if return_shape_only:
         return shape.tolist() + [len(channels)]
@@ -130,8 +130,8 @@ def _load_data_with_padding(
     # Defines the position of actual target data within the padded data
     pos_in_pad = ((shape - target_shape) / 2).astype(int)
     s_pos_in_pad = np.s_[pos_in_pad[0]: pos_in_pad[0] + target_shape[0],
-                         pos_in_pad[1]: pos_in_pad[1] + target_shape[1],
-                         pos_in_pad[2]: pos_in_pad[2] + target_shape[2]]
+                   pos_in_pad[1]: pos_in_pad[1] + target_shape[1],
+                   pos_in_pad[2]: pos_in_pad[2] + target_shape[2]]
 
     x = []
     for cid, channel in enumerate(channels):
@@ -161,7 +161,6 @@ def _load_data_with_padding_old(
         return_shape_only=False,
         downsample_output=1
 ):
-
     source_shape = np.array(channels[0].shape)
 
     shape = np.array(target_shape) * downsample_output
@@ -266,35 +265,35 @@ def apply_transform(x,
 
 
 def smooth_output(x, smooth_output_sigma):
-
     for ch in range(x.shape[3]):
-        x[ch] = ndi.gaussian_filter(x[ch], smooth_output_sigma)
+        x[..., ch] = ndi.gaussian_filter(x[..., ch], smooth_output_sigma)
 
     return x
 
 
 def preprocessing(x, smooth_output_sigma):
-
-    x = smooth_output(x, smooth_output_sigma)
+    if smooth_output_sigma > 0:
+        x = smooth_output(x, smooth_output_sigma)
 
     return x
 
 
 def random_displace_slices(x, displace_slices, fill_mode, cval):
-
     tx = displace_slices[0]
     ty = displace_slices[1]
 
-    if tx > 0 or ty > 0:
+    if len(tx) > 0 and len(ty) > 0:
 
         img_channel_axis = 2
 
         new_x = []
 
-        for slc in x:
+        for slidx, slc in enumerate(x):
+            ctx = tx[slidx]
+            cty = ty[slidx]
 
-            shift_matrix = np.array([[1, 0, tx],
-                                     [0, 1, ty],
+            shift_matrix = np.array([[1, 0, ctx],
+                                     [0, 1, cty],
                                      [0, 0, 1]])
 
             new_x.append(apply_transform(slc, shift_matrix, img_channel_axis,
@@ -306,9 +305,7 @@ def random_displace_slices(x, displace_slices, fill_mode, cval):
 
 
 def add_random_noise(x, noise):
-
     if noise is not None:
-
         noisy = x.astype('float32') + (noise.astype('float32') - 128)
         noisy[noisy > 255] = 255
         noisy[noisy < 0] = 0
@@ -329,9 +326,7 @@ def add_random_noise(x, noise):
 
 
 def random_brightness_contrast(x, brightness, contrast):
-
     if brightness > 0 or contrast > 0:
-
         x = (x.astype('float32') - 128) * contrast + 128
         x += brightness
 
@@ -365,10 +360,10 @@ def random_smooth(x, random_smooth):
     s_1 = random_smooth[2]
 
     if s_0 > 0 or s_1 > 0:
-
         mx, my = np.mgrid[-4:5, -4:5]
 
-        kernel = np.exp(-(((mx * np.sin(a) - my * np.cos(a)) ** 2 / (2 * s_0 ** 2)) + ((mx * np.cos(a) + my * np.sin(a)) ** 2 / (2 * s_1 ** 2))))
+        kernel = np.exp(-(((mx * np.sin(a) - my * np.cos(a)) ** 2 / (2 * s_0 ** 2)) + (
+                    (mx * np.cos(a) + my * np.sin(a)) ** 2 / (2 * s_1 ** 2))))
         # Like this, the kernel will only work on the x-y planes
         kernel = kernel[None, :, :, None]
         kernel /= kernel.sum()
@@ -386,6 +381,7 @@ def random_transform(
         horizontal_flip,
         vertical_flip,
         depth_flip,
+        transpose,
         fill_mode,
         cval
 ):
@@ -469,6 +465,9 @@ def random_transform(
 
     if depth_flip:
         x = flip_axis(x, img_z_axis)
+
+    if transpose:
+        x = x.transpose(*transpose)
 
     return x
 
@@ -557,7 +556,6 @@ def _pre_load_data(
         gt_target_size,
         add_pad_mask
 ):
-
     xs = []
     ys = []
     s_pads_x = []
@@ -570,7 +568,6 @@ def _pre_load_data(
         x, s_pad_x = _load_data_with_padding(raw_channels[volume], position, target_size, auto_pad=transform)
 
         if gt_channels is not None:
-
             # Load data
             y, s_pad_y = _load_data_with_padding(gt_channels[volume], position, gt_target_size,
                                                  auto_pad=transform,
@@ -589,6 +586,8 @@ def _pre_load_data(
 
 
 import cv2
+
+
 def _get_random_args(aug_dict, shape, noise_load_dict=None, noise_on_channel=None):
     """
     :param aug_dict:
@@ -657,17 +656,38 @@ def _get_random_args(aug_dict, shape, noise_load_dict=None, noise_on_channel=Non
     if aug_dict['random_smooth_range'][1] > 0:
         random_smoothing[2] = np.random.uniform(0, aug_dict['random_smooth_range'][1])
 
-    displace_slices = [0, 0]
+    displace_slices = [[], []]
     if aug_dict['displace_slices_range'] > 0:
-        displace_slices[0] = np.random.uniform(-aug_dict['displace_slices_range'], aug_dict['displace_slices_range'])
-        displace_slices[1] = np.random.uniform(-aug_dict['displace_slices_range'], aug_dict['displace_slices_range'])
+        displace_slices[0] = [
+            np.random.uniform(-aug_dict['displace_slices_range'], aug_dict['displace_slices_range'])
+            for idx in range(shape[2])
+        ]
+        displace_slices[1] = [
+            np.random.uniform(-aug_dict['displace_slices_range'], aug_dict['displace_slices_range'])
+            for idx in range(shape[2])
+        ]
 
     brightness = 0
     if aug_dict['brightness_range'] > 0:
         brightness = np.random.uniform(-aug_dict['brightness_range'], aug_dict['brightness_range'])
     contrast = 0
     if aug_dict['contrast_range']:
-        contrast = np.random.uniform(aug_dict['contrast_range'][0], aug_dict['contrast_range'][1])
+        if type(aug_dict['contrast_range']) == tuple:
+            contrast = np.random.uniform(aug_dict['contrast_range'][0], aug_dict['contrast_range'][1])
+        elif type(aug_dict['contrast_range']) == float:
+            divide = np.random.random() < 0.5
+            contrast = np.random.uniform(1, aug_dict['contrast_range'])
+            if divide:
+                contrast = 1 / contrast
+        elif type(aug_dict['contrast_range']) == dict:
+            ctr_settings = aug_dict['contrast_range']
+            divide = np.random.random() < ctr_settings['increase_ratio']
+            if divide:
+                contrast = np.random.uniform(1, ctr_settings['increase'])
+            else:
+                contrast = 1 / np.random.uniform(1, ctr_settings['decrease'])
+        else:
+            raise NotImplementedError
 
     rotation = 0
     if aug_dict['rotation_range']:
@@ -688,10 +708,15 @@ def _get_random_args(aug_dict, shape, noise_load_dict=None, noise_on_channel=Non
     vertical_flip = False
     if aug_dict['vertical_flip']:
         vertical_flip = np.random.random() < 0.5
-        
+
     depth_flip = False
     if aug_dict['depth_flip']:
         depth_flip = np.random.random() < 0.5
+
+    transpose = None
+    if aug_dict['transpose']:
+        transpose = list(range(0, len(shape) - 1))  # The last dim is the channel dim which should not be touched
+        np.random.shuffle(transpose)
 
     return dict(
         noise=noise,
@@ -703,13 +728,14 @@ def _get_random_args(aug_dict, shape, noise_load_dict=None, noise_on_channel=Non
         horizontal_flip=horizontal_flip,
         vertical_flip=vertical_flip,
         depth_flip=depth_flip,
+        transpose=transpose,
         brightness=brightness,
         contrast=contrast
     )
 
 
-def _pre_generate_random_values(raw_channels, aug_dict, transform, volume, position, target_shape, noise_load_dict, noise_on_channel, idx):
-
+def _pre_generate_random_values(raw_channels, aug_dict, transform, volume, position, target_shape, noise_load_dict,
+                                noise_on_channel, idx):
     # print('Noise for {}'.format(idx))
 
     if transform:
@@ -718,9 +744,11 @@ def _pre_generate_random_values(raw_channels, aug_dict, transform, volume, posit
             position=position,
             target_shape=target_shape,
             auto_pad=transform,
-            return_shape_only=True
+            return_shape_only=True,
+            auto_pad_z=transform and bool(aug_dict['transpose'])
         )
-        random_args = _get_random_args(aug_dict, shape, noise_load_dict=noise_load_dict, noise_on_channel=noise_on_channel)
+        random_args = _get_random_args(aug_dict, shape, noise_load_dict=noise_load_dict,
+                                       noise_on_channel=noise_on_channel)
     else:
         random_args = None
 
@@ -790,10 +818,15 @@ def _get_batches_of_transformed_samples(
         # # Load data
         x, s_pad_x = _load_data_with_padding(raw_channels[volume],
                                              position, target_size,
-                                             auto_pad=transform)
+                                             auto_pad=transform,
+                                             auto_pad_z=transform and bool(aug['transpose']))
 
         # Simulation of bad imaging quality on samples that are supposed to be transformed
         if transform:
+
+            if aug['transpose']:
+                x = x.transpose(*aug['transpose'] + [3])
+
             x = add_random_noise(x, aug['noise'])
             x = random_smooth(x, aug['random_smooth'])
             x = random_displace_slices(x,
@@ -817,6 +850,7 @@ def _get_batches_of_transformed_samples(
                                  aug['horizontal_flip'],
                                  aug['vertical_flip'],
                                  aug['depth_flip'],
+                                 None,
                                  aug_dict['fill_mode'],
                                  aug_dict['cval'])
 
@@ -832,7 +866,8 @@ def _get_batches_of_transformed_samples(
             if gt_target_channels is None:
                 y, s_pad_y = _load_data_with_padding(gt_channels[volume], position, gt_target_size,
                                                      auto_pad=transform,
-                                                     return_pad_mask=add_pad_mask)
+                                                     return_pad_mask=add_pad_mask,
+                                                     auto_pad_z=transform and bool(aug['transpose']))
 
             else:
                 data_s_pad_y = np.array([
@@ -855,6 +890,8 @@ def _get_batches_of_transformed_samples(
 
             # Random transformations on the samples that are set to be transformed
             if transform:
+                if aug['transpose']:
+                    y = y.transpose(*aug['transpose'] + [3])
                 y = random_transform(y,
                                      aug['rotation'],
                                      aug['shear'],
@@ -862,6 +899,7 @@ def _get_batches_of_transformed_samples(
                                      aug['horizontal_flip'],
                                      aug['vertical_flip'],
                                      aug['depth_flip'],
+                                     None,
                                      aug_dict['fill_mode'],
                                      aug_dict['cval'])
 
@@ -922,7 +960,6 @@ def _initialize(
         n_workers_noise=1,
         noise_on_channels=None
 ):
-
     assert ((spacing is not None and area_size is not None)
             or areas_and_spacings is not None), 'The areas and spacings have to be specified either with the ' \
                                                 'parameters area_size and spacing, or with areas_and_spacings.'
@@ -956,7 +993,6 @@ def _initialize(
     else:
         transformation_array = []
         for aas in areas_and_spacings:
-
             transformation_array += _build_equally_spaced_volume_list(
                 aas['spacing'],
                 aas['area_size'],
@@ -978,8 +1014,9 @@ def _initialize(
     if n_workers_noise == 1:
         random_args = []
         for tidx, (position, volume, transform) in enumerate(transformation_array):
-
-            random_args.append(_pre_generate_random_values(raw_channels, aug_dict, transform, volume, position, target_shape, noise_load_dict, noise_on_channels, tidx))
+            random_args.append(
+                _pre_generate_random_values(raw_channels, aug_dict, transform, volume, position, target_shape,
+                                            noise_load_dict, noise_on_channels, tidx))
     else:
         with ThreadPoolExecutor(max_workers=n_workers_noise) as tpe:
             tasks = [
@@ -1190,7 +1227,7 @@ def parallel_data_generator(
             results, _ = res.get()
             print('Joining job')
             epoch += 1
-            
+
         else:
 
             # Convert to float
@@ -1217,7 +1254,7 @@ def parallel_data_generator(
             else:
                 yield batch_x, batch_y
             n += 1
-            
+
 
 def parallel_test_data_generator(
         raw_channels,
@@ -1226,7 +1263,6 @@ def parallel_test_data_generator(
         target_shape=(64, 64, 64),
         smooth_output_sigma=0.5,
         n_workers=1):
-
     # Start the generator
     n = 0
     results, steps_per_epoch = _initialize(
@@ -1260,6 +1296,7 @@ def parallel_test_data_generator(
             # Convert to float
             batch_x = results[n][0]
             batch_x = batch_x.astype('float32') / 255
+            # print('min = {}; max = {}'.format(batch_x.min(), batch_x.max()))
             xyz = results[n][1]
 
             yield batch_x, xyz

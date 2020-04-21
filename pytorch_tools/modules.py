@@ -1,4 +1,3 @@
-
 import torch.nn as nn
 from torch import cat
 from torch import optim
@@ -22,7 +21,7 @@ class Downsampling(nn.Module):
             conv_strides=1,
             padding=1,
             activation='relu',
-            batch_norm=False,
+            batch_norm=None,
             ndims=2
     ):
         super(Downsampling, self).__init__()
@@ -59,7 +58,10 @@ class Downsampling(nn.Module):
             ))
 
             if batch_norm:
-                self.convolutions.add_module('bn{}'.format(idx), BatchNormND[ndims](out_ch))
+                if type(batch_norm) is dict:
+                    self.convolutions.add_module('bn{}'.format(idx), BatchNormND[ndims](out_ch, **batch_norm))
+                else:
+                    self.convolutions.add_module('bn{}'.format(idx), BatchNormND[ndims](out_ch))
 
             if activation == 'relu':
                 self.convolutions.add_module('relu{}'.format(idx), nn.ReLU(inplace=True))
@@ -93,7 +95,7 @@ class Upsampling(nn.Module):
             conv_strides=1,
             padding=1,
             activation='relu',
-            batch_norm=False,
+            batch_norm=None,
             ndims=2
     ):
         super(Upsampling, self).__init__()
@@ -142,7 +144,10 @@ class Upsampling(nn.Module):
             ))
 
             if batch_norm:
-                self.convolutions.add_module('bn{}'.format(idx), BatchNormND[ndims](out_ch))
+                if type(batch_norm) is dict:
+                    self.convolutions.add_module('bn{}'.format(idx), BatchNormND[ndims](out_ch, **batch_norm))
+                else:
+                    self.convolutions.add_module('bn{}'.format(idx), BatchNormND[ndims](out_ch))
 
             if activation == 'relu':
                 self.convolutions.add_module('relu{}'.format(idx), nn.ReLU(inplace=True))
@@ -169,7 +174,7 @@ class Bottleneck(nn.Module):
             conv_strides=1,
             padding=1,
             activation='relu',
-            batch_norm=False,
+            batch_norm=None,
             ndims=2
     ):
         super(Bottleneck, self).__init__()
@@ -205,7 +210,10 @@ class Bottleneck(nn.Module):
             ))
 
             if batch_norm:
-                self.layers.add_module('bn{}'.format(idx), BatchNormND[ndims](out_ch))
+                if type(batch_norm) is dict:
+                    self.layers.add_module('bn{}'.format(idx), BatchNormND[ndims](out_ch, **batch_norm))
+                else:
+                    self.layers.add_module('bn{}'.format(idx), BatchNormND[ndims](out_ch))
 
             if activation == 'relu':
                 self.layers.add_module('relu{}'.format(idx), nn.ReLU(inplace=True))
@@ -228,7 +236,7 @@ class Unet(nn.Module):
             filter_sizes_up=((128, 128), (64, 64), (32, 32)),
             filter_sizes_bottleneck=(128, 256),
             kernel_size=3,
-            batch_norm=True,
+            batch_norm=None,
             ndims=2,
             return_last_upsampling=False,
             output_activation='sigmoid'
@@ -315,7 +323,6 @@ class Unet(nn.Module):
         # Auto-encoder
         skips = []
         for down_level in range(len(self.filter_sizes_down)):
-
             x, skip = self.downs[down_level](x)
             skips.append(skip)
 
@@ -324,7 +331,6 @@ class Unet(nn.Module):
 
         # Auto-decoder
         for up_level in range(len(self.filter_sizes_up)):
-
             x = self.ups[up_level](x, skips[len(self.filter_sizes_up) - up_level - 1])
 
         last_upsampling = x
@@ -340,7 +346,6 @@ class Unet(nn.Module):
 
 
 if __name__ == '__main__':
-    
     unet = Unet(1, 1, ndims=3)
 
     # optimizer = optim.Adam(unet.parameters(), 0.003)

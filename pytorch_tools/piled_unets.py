@@ -1,4 +1,3 @@
-
 import numpy as np
 
 # from .modules import nn
@@ -9,7 +8,7 @@ from pytorch_tools.modules import Unet
 
 
 class cNnet(nn.Module):
-    
+
     def __init__(
             self,
             n_nets=3,
@@ -50,7 +49,7 @@ class cNnet(nn.Module):
             output_activation='softmax',
             verbose=False
     ):
-        
+
         super(cNnet, self).__init__()
 
         # ______________________________
@@ -74,7 +73,6 @@ class cNnet(nn.Module):
             if crop_and_ds_inputs:
 
                 if 0 < net_idx < n_nets - 1:
-
                     # First, the tensor will be cropped
                     # and then downsampled
                     self.avg_pool_inputs[net_idx] = nn.AvgPool3d(
@@ -97,7 +95,7 @@ class cNnet(nn.Module):
             )
 
     def forward(self, x):
-        
+
         # TODO: Define the architecture
         raise NotImplementedError
 
@@ -157,7 +155,7 @@ class PiledUnet(nn.Module):
         self.unets = nn.ModuleList()
 
         for net_idx in range(n_nets):
-            
+
             if net_idx == 0:
                 in_ch = in_channels
             else:
@@ -198,7 +196,7 @@ class PiledUnet(nn.Module):
                     outputs = out_x
                 else:
                     outputs = cat((outputs, out_x), dim=1)
-        
+
         if self.predict:
             assert out_x is not None
             outputs = out_x
@@ -212,7 +210,6 @@ class MembraneNet(PiledUnet):
     """
 
     def __init__(self, predict=False):
-
         super(MembraneNet, self).__init__(
             n_nets=3,
             in_channels=1,
@@ -238,8 +235,38 @@ class MembraneNet(PiledUnet):
         )
 
 
-if __name__ == '__main__':
+class SlimMembraneNet(PiledUnet):
+    """
+    Just a piled unet with sensible parameters
+    """
 
+    def __init__(self, predict=False):
+        super(SlimMembraneNet, self).__init__(
+            n_nets=3,
+            in_channels=1,
+            out_channels=[1, 1, 1],
+            filter_sizes_down=(
+                ((8, 16), (16, 32), (32, 64)),
+                ((8, 16), (16, 32), (32, 64)),
+                ((8, 16), (16, 32), (32, 64))
+            ),
+            filter_sizes_bottleneck=(
+                (64, 128),
+                (64, 128),
+                (64, 128)
+            ),
+            filter_sizes_up=(
+                ((64, 64), (32, 32), (16, 16)),
+                ((64, 64), (32, 32), (16, 16)),
+                ((64, 64), (32, 32), (16, 16))
+            ),
+            batch_norm=True,
+            output_activation='sigmoid',
+            predict=predict
+        )
+
+
+if __name__ == '__main__':
     piled_unet = PiledUnet(
         n_nets=3,
         in_channels=1,
@@ -255,17 +282,17 @@ if __name__ == '__main__':
             (128, 256)
         ),
         filter_sizes_up=(
-            ((256, 128, 128), (128, 64, 64), (64, 32, 32)),
-            ((256, 128, 128), (128, 64, 64), (64, 32, 32)),
-            ((256, 128, 128), (128, 64, 64), (64, 32, 32))
+            ((128, 128), (64, 64), (32, 32)),
+            ((128, 128), (64, 64), (32, 32)),
+            ((128, 128), (64, 64), (32, 32))
         ),
         batch_norm=True,
         output_activation='sigmoid'
     )
 
-    # # optimizer = optim.Adam(unet.parameters(), 0.003)
-    #
-    # piled_unet.cuda()
-    # summary(piled_unet, (1, 64, 64, 64))
-    #
-    # pass
+    # optimizer = optim.Adam(unet.parameters(), 0.003)
+
+    piled_unet.cuda()
+    summary(piled_unet, (1, 64, 64, 64))
+
+    pass

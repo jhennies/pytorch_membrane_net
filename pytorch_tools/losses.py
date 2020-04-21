@@ -1,26 +1,25 @@
-
 import torch as t
 import torch.nn as nn
 
 
 class WeightMatrixMSELoss(nn.Module):
-    
+
     def __init__(self):
         super(WeightMatrixMSELoss, self).__init__()
-        
+
     def forward(self, y_pred, y_true):
-        
         num_channels = y_pred.shape[1]
 
         w = y_true[:, -1, :][:, None, :]
-        
+
         loss = 0.
         for c in range(num_channels):
-            loss += w * (y_pred[:, c, :] - y_true[:, c, :]) ** 2 
-            
+            loss += w * (y_pred[:, c, :] - y_true[:, c, :]) ** 2
+
         return t.mean(loss)
 
 
+# from matplotlib import pyplot as plt
 class WeightMatrixWeightedBCE(nn.Module):
 
     def __init__(self, class_weights, weigh_with_matrix_sum=False):
@@ -44,32 +43,39 @@ class WeightMatrixWeightedBCE(nn.Module):
         loss = 0.
         if not self.weigh_with_matrix_sum:
             for c in range(num_channels):
-                loss += w * -(cw[c][1] * y_true[:, c, :] * t.log(y_pred[:, c, :]) + cw[c][0] * (1.0 - y_true[:, c, :]) * t.log(- y_pred[:, c, :] + 1.0))
+                y_true_c = y_true[:, c, :][:, None, :]
+                y_pred_c = y_pred[:, c, :][:, None, :]
+                loss += w * -(cw[c][1] * y_true_c * t.log(y_pred_c) + cw[c][0] * (1.0 - y_true_c) * t.log(
+                    - y_pred_c + 1.0))
         else:
             for c in range(num_channels):
-                loss += t.sum(w) / w.nelement() * w * -(cw[c][1] * y_true[:, c, :] * t.log(y_pred[:, c, :]) + cw[c][0] * (1.0 - y_true[:, c, :]) * t.log(- y_pred[:, c, :] + 1.0))
+                y_true_c = y_true[:, c, :][:, None, :]
+                y_pred_c = y_pred[:, c, :][:, None, :]
+                loss += t.sum(w) / w.nelement() * w * -(
+                            cw[c][1] * y_true_c * t.log(y_pred_c) + cw[c][0] * (1.0 - y_true_c) * t.log(
+                        - y_pred_c + 1.0))
 
         return t.mean(loss)
-    
-    
+
+
 class CombinedLosses(nn.Module):
-    
+
     def __init__(self, losses, y_pred_channels, y_true_channels, weigh_losses=None):
         super(CombinedLosses, self).__init__()
-        
+
         self.losses = losses
         self.y_pred_channels = y_pred_channels
         self.y_true_channels = y_true_channels
         if weigh_losses is None:
             weigh_losses = (1,) * len(y_pred_channels)
         self.weigh_losses = weigh_losses
-        
+
     def forward(self, y_pred, y_true):
-        
+
         loss = 0.
-        
+
         for idx in range(len(self.y_pred_channels)):
-            
+
             ypch = self.y_pred_channels[idx]
             ytch = self.y_true_channels[idx]
 
@@ -96,7 +102,7 @@ class CombinedLosses(nn.Module):
                         yt.append(y_true[:, sl, :][:, None, :])
                     elif type(sl) == tuple:
                         for tsl in sl:
-                            yt.append(y_true[:, sl, :][:, None, :])
+                            yt.append(y_true[:, tsl, :][:, None, :])
                     else:
                         raise ValueError
                 yt = t.cat(yt, dim=1)
@@ -111,5 +117,4 @@ class CombinedLosses(nn.Module):
 
 
 if __name__ == '__main__':
-
     pass
